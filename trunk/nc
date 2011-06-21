@@ -44,6 +44,8 @@ def usage():
         print "[[-v | --verbose]] show verbose output"
         print "[[-m | --timestring]] timestrings in log"
         print "[[-i | --setipt]] set iptables to reject RST packets from src host"
+        print "[[-f | --sniff]] number of packets to sniff for"
+	print "[[-n | --norcv]] Do an send instead of sr1 (send and receive)"
 
 #
 # Getopts
@@ -52,14 +54,14 @@ try:
         opts, args = getopt.getopt(sys.argv[1:], "hvmis:d:p:r:1:2:t:l:q:", 
                      ["help", "verbose", "timestring", "setipt=", 
                       "src-ip=", "dest-ip=", "sport=", "dport=", "src-mac=", "dest-mac=", 
-                      "timeout=", "ttl=", "seqnum="])
+                      "timeout=", "ttl=", "seqnum=", "norcv", "sniff="])
 except getopt.GetoptError, err:
         print str(err)
         usage()
         sys.exit(-1)
 
 srcip = srcmac = destmac = ""
-setipt = verbose = ts = destip = dport = None
+setipt = verbose = ts = destip = dport = norcv = snf = None
 seq_num = random.randint(1, 65534)
 sport = random.randint(1024, 65534)
 
@@ -94,6 +96,10 @@ for o, a in opts:
                 ttl = int(a)
         elif o in ("-q", "--seqnum"):
                 seqnum = a
+	elif o in ("-n", "--norcv"):
+		norcv = 1
+	elif o in ("-f", "--sniff"):
+		snf = a
         else:
                 print "Unhandled Exception, see usage below\n"
                 usage()
@@ -176,6 +182,16 @@ if eth_layer:
 else:
     req_pkt = ip_layer/req_tcp_layer/req_data
 
-resp = sr1(req_pkt, timeout = tout)
+if norcv == 1:
+	send(req_pkt)
+else:
+	resp = sr1(req_pkt, timeout = tout)
+	print resp.load
 
-print resp.load
+def printPayload (x):
+	payload = x.sprintf("%TCP.payload%")
+	print payload
+
+if snf != None:
+	filterRule = "tcp and port " + str(sport)
+	pkt = sniff(filter = filterRule, prn = lambda x: printPayload(x), count = snf)

@@ -99,7 +99,7 @@ for o, a in opts:
 	elif o in ("-n", "--norcv"):
 		norcv = 1
 	elif o in ("-f", "--sniff"):
-		snf = a
+		snf = int(a)
         else:
                 print "Unhandled Exception, see usage below\n"
                 usage()
